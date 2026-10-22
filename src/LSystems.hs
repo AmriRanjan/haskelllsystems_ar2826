@@ -50,10 +50,24 @@ expand ruleList axiomValue n =
   expand ruleList (expandOne ruleList axiomValue) (n - 1)
 
 parse :: [Char] -> [Command]
-parse = undefined
+parse input = fst (parseHelper input)
+  where
+    parseHelper :: [Char] -> ([Command], [Char])
+    parseHelper [] = ([], [])
+    parseHelper (']':rest) = ([], rest)
+    parseHelper ('[':rest) =
+      (B branchCommands : nextCommands, remainingInput)
+      where
+        (branchCommands, afterBranch) = parseHelper rest
+        (nextCommands, remainingInput) = parseHelper afterBranch
+    parseHelper (char:rest) =
+      (lookupChar commandMap char ++ nextCommands, remainingInput)
+      where
+        (nextCommands, remainingInput) = parseHelper rest
 
 expandLSystem :: LSystem -> Int -> [Command]
-expandLSystem = undefined
+expandLSystem lsystem n =
+  parse (expand (rules lsystem) (axiom lsystem) n)
 
 -- Part 3: Turtles
 type Vertex = (Float, Float)
@@ -69,7 +83,7 @@ initialState = ((0, 0), 90)
 -- L rotates left according to the given angle.
 -- R rotates right according to the given angle.
 move :: Command -> Float -> TurtleState -> TurtleState
-move = move L angleValue ((x, y), orientation) = ((x, y), orientation + angleValue)
+move = L angleValue ((x, y), orientation) = ((x, y), orientation + angleValue)
 
 move R angleValue ((x, y), orientation) = ((x, y), orientation - angleValue)
 
@@ -81,11 +95,54 @@ move F _ ((x, y), orientation) =
   )
 
 trace1 :: [Command] -> Float -> Colour -> [ColouredLine]
-trace1 = undefined
+trace1 commands angleValue colour = go commands initialState
+  where
+    go :: [Command] -> TurtleState -> [ColouredLine]
+    go [] _ = []
+
+    go (F:rest) currentState =
+      (startPoint, endPoint, colour) : go rest nextState
+      where
+        nextState = move F angleValue currentState
+        (startPoint, _) = currentState
+        (endPoint, _) = nextState
+
+    go (L:rest) currentState =
+      go rest (move L angleValue currentState)
+
+    go (R:rest) currentState =
+      go rest (move R angleValue currentState)
+
+    go (B branchCommands:rest) currentState =
+      go branchCommands currentState ++ go rest currentState
 
 -- This version uses an explicit stack of residual commands and turtle states
 trace2 :: [Command] -> Float -> Colour -> [ColouredLine]
-trace2 = undefined
+trace2 commands angleValue colour = go commands initialState []
+  where
+    go :: [Command] -> TurtleState
+       -> [([Command], TurtleState)] -> [ColouredLine]
+
+    go [] _ [] = []
+
+    go [] _ ((savedCommands, savedState):stack) =
+      go savedCommands savedState stack
+
+    go (F:rest) currentState stack =
+      (startPoint, endPoint, colour) : go rest nextState stack
+      where
+        nextState = move F angleValue currentState
+        (startPoint, _) = currentState
+        (endPoint, _) = nextState
+
+    go (L:rest) currentState stack =
+      go rest (move L angleValue currentState) stack
+
+    go (R:rest) currentState stack =
+      go rest (move R angleValue currentState) stack
+
+    go (B branchCommands:rest) currentState stack =
+      go branchCommands currentState ((rest, currentState):stack)
 
 -- Provided Helper Functions
 ------------------------------------------------------------------------------
