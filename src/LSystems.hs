@@ -14,21 +14,23 @@ data LSystem = LSystem Float [Char] (Rules Char)
 
 -- Returns the rotation angle for the given system.
 angle :: LSystem -> Float
-angle = undefined
+angle (LSystem angleValue _ _) = angleValue
 
 -- Returns the axiom string for the given system.
 axiom :: LSystem -> [Char]
-axiom = undefined
+axiom (LSystem _ axiomValue _) = axiomValue
 
 -- Returns the set of rules for the given system.
 rules :: LSystem -> Rules Char
-rules = undefined
+rules (LSystem _ _ rulesValue) = rulesValue
 
 --
 -- Pre: the character has a binding in the Rules list
 --
 lookupChar :: Rules a -> Char -> [a]
-lookupChar = undefined
+lookupChar ((ruleChar, values):rest) searchChar
+  | ruleChar == searchChar = values
+  | otherwise = lookupChar rest searchChar
 
 -- Part 2: Expansion and Parsing
 data Command = F | L | R | B [Command] deriving Show
@@ -37,13 +39,15 @@ data Command = F | L | R | B [Command] deriving Show
 -- Expand command string s once using rule table r
 --
 expandOne :: Rules Char -> [Char] -> [Char]
-expandOne = undefined
+expandOne ruleList axiomValue = concat [lookupChar ruleList axiomChar | axiomChar <- axiomValue]
 
 --
 -- Expand command string s n times using rule table r
 --
 expand :: Rules Char -> [Char] -> Int -> [Char]
-expand = undefined
+expand ruleList axiomValue 0 = axiomValue
+expand ruleList axiomValue n =
+  expand ruleList (expandOne ruleList axiomValue) (n - 1)
 
 parse :: [Char] -> [Command]
 parse = undefined
@@ -65,7 +69,16 @@ initialState = ((0, 0), 90)
 -- L rotates left according to the given angle.
 -- R rotates right according to the given angle.
 move :: Command -> Float -> TurtleState -> TurtleState
-move = undefined
+move = move L angleValue ((x, y), orientation) = ((x, y), orientation + angleValue)
+
+move R angleValue ((x, y), orientation) = ((x, y), orientation - angleValue)
+
+move F _ ((x, y), orientation) =
+  ((x + cos (degreesToRadians orientation)
+    , y + sin (degreesToRadians orientation)
+    )
+  , orientation
+  )
 
 trace1 :: [Command] -> Float -> Colour -> [ColouredLine]
 trace1 = undefined
