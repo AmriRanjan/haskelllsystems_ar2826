@@ -50,20 +50,20 @@ expand ruleList axiomValue n =
   expand ruleList (expandOne ruleList axiomValue) (n - 1)
 
 parse :: [Char] -> [Command]
-parse input = fst (parseHelper input)
+parse charList = fst (parseHelper charList)
   where
     parseHelper :: [Char] -> ([Command], [Char])
     parseHelper [] = ([], [])
     parseHelper (']':rest) = ([], rest)
     parseHelper ('[':rest) =
-      (B branchCommands : nextCommands, remainingInput)
+      ((B branchCommands) : outerCommands, remCharList)
       where
-        (branchCommands, afterBranch) = parseHelper rest
-        (nextCommands, remainingInput) = parseHelper afterBranch
+        (branchCommands, afterBranchChars) = parseHelper rest
+        (outerCommands, remCharList) = parseHelper afterBranchChars
     parseHelper (char:rest) =
-      (lookupChar commandMap char ++ nextCommands, remainingInput)
+      (lookupChar commandMap char ++ nextCommands, remCharList)
       where
-        (nextCommands, remainingInput) = parseHelper rest
+        (nextCommands, remCharList) = parseHelper rest
 
 expandLSystem :: LSystem -> Int -> [Command]
 expandLSystem lsystem n =
@@ -83,16 +83,12 @@ initialState = ((0, 0), 90)
 -- L rotates left according to the given angle.
 -- R rotates right according to the given angle.
 move :: Command -> Float -> TurtleState -> TurtleState
-move = L angleValue ((x, y), orientation) = ((x, y), orientation + angleValue)
-
+move L angleValue ((x, y), orientation) = ((x, y), orientation + angleValue)
 move R angleValue ((x, y), orientation) = ((x, y), orientation - angleValue)
-
-move F _ ((x, y), orientation) =
-  ((x + cos (degreesToRadians orientation)
-    , y + sin (degreesToRadians orientation)
-    )
-  , orientation
-  )
+move F _ ((x, y), orientation) = ((x', y'), orientation)
+  where
+    x' = x + cos (degreesToRadians orientation)
+    y' = y + sin (degreesToRadians orientation)
 
 trace1 :: [Command] -> Float -> Colour -> [ColouredLine]
 trace1 commands angleValue colour = go commands initialState
